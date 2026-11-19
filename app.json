@@ -1,23 +1,18 @@
 {
   "expo": {
-    "name": "bookflow-frontend",
-    "slug": "bookflow-frontend",
+    "name": "BookFlow",
+    "slug": "bookflow",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icons/logo1.png",
-    "scheme": "bookflow-frontend",
+    "scheme": "bookflow",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.bookflow",
-      "infoPlist": {
-        "NSAppTransportSecurity": {
-          "NSAllowsArbitraryLoads": true
-        }
-      }
+      "supportsTablet": false,
+      "bundleIdentifier": "com.ekaterinatranchand.bookflow"
     },
     "android": {
-      "package": "com.bookflow",
+      "package": "com.ekaterinatranchand.bookflow",
       "adaptiveIcon": {
         "foregroundImage": "./assets/icons/logo1.png",
         "backgroundColor": "#161622"
@@ -36,7 +31,7 @@
           "image": "./assets/icons/logo1.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#161622"
         }
       ],
       [
@@ -58,8 +53,8 @@
       [
         "expo-image-picker",
         {
-          "photoPermission": "The app accesses your photos to let you share them with your friends.",
-          "cameraPermission": "The app accesses your camera to let you take photos and videos."
+          "photoPermission": "BookFlow uses your photos to add pictures of your books and your profile.",
+          "cameraPermission": "BookFlow uses your camera to photograph books you want to share."
         }
       ],
       "expo-web-browser",
