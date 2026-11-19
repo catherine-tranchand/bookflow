@@ -11,11 +11,10 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.bookflow",
       "infoPlist": {
-      "NSAppTransportSecurity": {
-      "NSAllowsArbitraryLoads": true
-    }
-  
-}
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        }
+      }
     },
     "android": {
       "package": "com.bookflow",
@@ -34,7 +33,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/icons/logo1.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
@@ -64,7 +63,8 @@
         }
       ],
       "expo-web-browser",
-      "expo-sqlite"
+      "expo-sqlite",
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": true

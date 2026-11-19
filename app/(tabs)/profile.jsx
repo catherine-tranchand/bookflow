@@ -1,11 +1,16 @@
 import { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Image, ActivityIndicator, Keyboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGlobalContext } from '../../context/GlobalProvider';
 import { router } from 'expo-router';
 import { signOut, updateUser } from '../../lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
 import { getUserBooks } from '../../lib/supabase';
+import {
+  getWishlistItems,
+  addWishlistEntries,
+  removeWishlistItem,
+} from '../../lib/wishlist';
 
 // ─── Données statiques ─────────────────────────────────────────────────────────
 
@@ -37,7 +42,9 @@ export default function Profile() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [bio, setBio] = useState(user?.bio || '');
-  const [wishlist, setWishlist] = useState(user?.wishlist || '');
+  const [wishlistItems, setWishlistItems] = useState([]);
+  const [wishlistInput, setWishlistInput] = useState('');
+  const [addingWishlist, setAddingWishlist] = useState(false);
   const [selectedGenres, setSelectedGenres] = useState(userGenres);
   const [myBooks, setMyBooks] = useState([]); 
 
@@ -46,6 +53,14 @@ export default function Profile() {
       getUserBooks(user.id)
       .then(setMyBooks)
       .catch((e) => console.log('getUsersBooks error', e.message));
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (user?.id) {
+      getWishlistItems(user.id)
+        .then(setWishlistItems)
+        .catch((e) => console.log('getWishlistItems error', e.message));
     }
   }, [user?.id]);
 
@@ -71,12 +86,40 @@ export default function Profile() {
     );
   };
 
+  const handleAddWishlist = async () => {
+    const clean = wishlistInput.trim();
+    if (!clean || addingWishlist) return;
+
+    setAddingWishlist(true);
+    try {
+      const added = await addWishlistEntries(user.id, clean);
+      setWishlistItems((prev) => [...added, ...prev]);
+      setWishlistInput('');
+      Keyboard.dismiss();
+    } catch (error) {
+      console.log('handleAddWishlist error:', error.message);
+      Alert.alert('Erreur', "Impossible d'ajouter ce livre.");
+    } finally {
+      setAddingWishlist(false);
+    }
+  };
+
+  const handleRemoveWishlist = async (id) => {
+    const backup = wishlistItems;
+    setWishlistItems((prev) => prev.filter((w) => w.id !== id));
+    try {
+      await removeWishlistItem(id);
+    } catch (error) {
+      console.log('handleRemoveWishlist error:', error.message);
+      setWishlistItems(backup);
+    }
+  };
+
   const handleSave = async () => {
     try {
       const updated = await updateUser(user.id, {
         bio,
-        wishlist,
-        genres: selectedGenres, 
+        genres: selectedGenres,
       }, avatarUri);
       setUser({ ...user, ...updated });
       setIsEditing(false);
@@ -102,7 +145,7 @@ export default function Profile() {
 
   return (
     <SafeAreaView className="bg-primary h-full">
-      <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 100 }} keyboardShouldPersistTaps="handled">
         <View className="px-4 py-6">
 
           {/* ── Header : avatar + infos ── */}
@@ -148,16 +191,6 @@ export default function Profile() {
               )}
             </View>
           </View>
-
-          {/* ── Bouton édition ── */}
-          <TouchableOpacity
-            onPress={() => isEditing ? handleSave() : setIsEditing(true)}
-            className="bg-secondary-100 rounded-xl py-3 mb-6 items-center"
-          >
-            <Text className="text-primary font-psemibold text-base">
-              {isEditing ? '✅ Sauvegarder' : '✏️ Modifier le profil'}
-            </Text>
-          </TouchableOpacity>
 
           {/* ── Genres préférés ── */}
           <View className="mb-6">
@@ -219,23 +252,65 @@ export default function Profile() {
 
           {/* ── Wishlist ── */}
           <View className="mb-6">
-            <Text className="text-white font-psemibold text-lg mb-3">🔖 Livres à lire</Text>
-            {isEditing ? (
-              <TextInput
-                value={wishlist}
-                onChangeText={setWishlist}
-                placeholder="Ex: Crime et Châtiment, Le Maître et Marguerite..."
-                placeholderTextColor="#CDCDE0"
-                multiline
-                numberOfLines={3}
-                className="bg-black-200 text-white font-pregular p-4 rounded-xl border border-gray-100"
-                style={{ textAlignVertical: 'top' }}
-              />
-            ) : (
-              <Text className="text-white font-pregular text-sm">
-                {wishlist || <Text className="italic">Aucun livre dans la wishlist</Text>}
-              </Text>
+            <View className="flex-row justify-between items-center mb-3">
+              <Text className="text-white font-psemibold text-lg">🔖 Livres à lire</Text>
+              {!isEditing && (
+                <TouchableOpacity onPress={() => setIsEditing(true)}>
+                  <Text className="text-secondary-100 font-pmedium text-sm">+ Ajouter</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {isEditing && (
+              <View className="flex-row items-center gap-2 mb-3">
+                <TextInput
+                  value={wishlistInput}
+                  onChangeText={setWishlistInput}
+                  onSubmitEditing={handleAddWishlist}
+                  returnKeyType="done"
+                  editable={!addingWishlist}
+                  placeholder="Ex: Мастер и Маргарита"
+                  placeholderTextColor="#CDCDE0"
+                  className="flex-1 bg-black-200 text-white font-pregular px-4 py-3 rounded-xl border border-gray-100"
+                />
+                <TouchableOpacity
+                  onPress={handleAddWishlist}
+                  disabled={addingWishlist || !wishlistInput.trim()}
+                  className="bg-secondary-100 rounded-xl px-5 py-3"
+                  style={{ opacity: addingWishlist || !wishlistInput.trim() ? 0.4 : 1 }}
+                >
+                  {addingWishlist ? (
+                    <ActivityIndicator size="small" color="#161622" />
+                  ) : (
+                    <Text className="text-primary font-pbold">+</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
             )}
+
+            <View className="flex-row flex-wrap gap-2">
+              {wishlistItems.length === 0 ? (
+                <Text className="text-gray-100 font-pregular text-sm italic">
+                  Aucun livre dans la wishlist
+                </Text>
+              ) : (
+                wishlistItems.map((item) => (
+                  <View
+                    key={item.id}
+                    className="flex-row items-center bg-black-200 border border-secondary-100 rounded-xl px-3 py-2 gap-2"
+                  >
+                    <Text className="text-secondary-100 font-pmedium text-sm">
+                      {item.title ?? item.raw_text}
+                    </Text>
+                    {isEditing && (
+                      <TouchableOpacity onPress={() => handleRemoveWishlist(item.id)}>
+                        <Text className="text-gray-100 text-xs">✕</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ))
+              )}
+            </View>
           </View>
 
           {/* ── Mes livres ── */}
@@ -285,10 +360,20 @@ export default function Profile() {
             )}
           </View>
 
+          {/* ── Bouton édition ── */}
+          <TouchableOpacity
+            onPress={() => isEditing ? handleSave() : setIsEditing(true)}
+            className="bg-secondary-100 rounded-xl py-3 mt-4 items-center"
+          >
+            <Text className="text-primary font-psemibold text-base">
+              {isEditing ? '✅ Sauvegarder' : '✏️ Modifier le profil'}
+            </Text>
+          </TouchableOpacity>
+
           {/* ── Déconnexion ── */}
           <TouchableOpacity
             onPress={handleLogout}
-            className="bg-black-200 border border-red-500 rounded-xl py-3 items-center mt-4"
+            className="bg-black-200 border border-red-500 rounded-xl py-3 items-center mt-3"
           >
             <Text className="text-red-500 font-psemibold text-base">🚪 Se déconnecter</Text>
           </TouchableOpacity>

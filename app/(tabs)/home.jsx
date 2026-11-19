@@ -10,6 +10,7 @@ import { getBooks } from "../../lib/supabase";
 import { useGlobalContext } from "../../context/GlobalProvider";
 import BookCard from "../../components/BookCard";
 import { CITIES } from '../../constants/cities';
+import { getWishlistMatches } from '../../lib/wishlist';
 
 // ─── Données filtres ───────────────────────────────────────────────────────────
 const FILTERS = {
@@ -151,6 +152,8 @@ export default function HomeScreen() {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState("recent");
 
+  const [matches, setMatches] = useState(new Map());
+
   const [selected, setSelected] = useState({ offerType: "all", delivery: "all", city: "all" });
   const [openSheet, setOpenSheet] = useState(null);
 
@@ -160,10 +163,14 @@ export default function HomeScreen() {
 
   const fetchBooks = useCallback(async () => {
     try {
+      const matchMap = await getWishlistMatches();
+      setMatches(matchMap);
+
       let docs = await getBooks({
         offerType: selected.offerType !== "all" ? selected.offerType : undefined,
         delivery: selected.delivery !== "all" && !deliveryDisabled ? selected.delivery : undefined,
         city: selected.city !== "all" ? selected.city : undefined,
+        excludeUserId: user?.id,
       });
 
       if (search.trim()) {
@@ -174,8 +181,9 @@ export default function HomeScreen() {
       }
 
       if (activeTab === "wishlist") {
-        const wishlist = user?.wishlist ?? [];
-        docs = docs.filter((b) => wishlist.includes(b.id));
+        docs = docs
+          .filter((b) => matchMap.has(b.id))
+          .sort((a, b) => matchMap.get(b.id).score - matchMap.get(a.id).score);
       }
 
       setBooks(docs);
@@ -297,7 +305,9 @@ export default function HomeScreen() {
         <FlatList
           data={books}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <BookCard book={item} />}
+          renderItem={({ item }) => (
+            <BookCard book={item} match={matches.get(item.id)} />
+          )}
           contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 100 }}
           showsVerticalScrollIndicator={false}
           refreshControl={
@@ -311,7 +321,11 @@ export default function HomeScreen() {
             <View className="items-center justify-center py-20">
               <Text className="text-5xl mb-4">📚</Text>
               <Text className="font-pmedium text-center text-sm" style={{ color: "rgba(205,205,224,0.4)" }}>
-                {search ? `Aucun résultat pour "${search}"` : "Aucun livre avec ces filtres"}
+                {activeTab === "wishlist"
+                  ? "Aucun livre de ta wishlist n'est disponible pour l'instant"
+                  : search
+                    ? `Aucun résultat pour "${search}"`
+                    : "Aucun livre avec ces filtres"}
               </Text>
             </View>
           }

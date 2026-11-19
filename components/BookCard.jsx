@@ -18,7 +18,7 @@ const STATE_LABELS = {
   acceptable: "📖 Acceptable",
 };
 
-export default function BookCard({ book }) {
+export default function BookCard({ book, match }) {
   const router = useRouter();
   const creatorName = book.creator?.username ?? "…";
   const city = book.city ?? book.creator?.city ?? "";
@@ -59,6 +59,21 @@ export default function BookCard({ book }) {
       {/* Infos */}
       <View className="flex-1 min-w-0 justify-between">
         <View>
+          {match && (
+            <View
+              className="flex-row items-center self-start rounded-lg px-2 py-1 mb-1.5"
+              style={{
+                backgroundColor: "rgba(255,156,1,0.18)",
+                borderWidth: 1,
+                borderColor: "rgba(255,156,1,0.45)",
+              }}
+            >
+              <Text className="text-secondary-100 font-pmedium" style={{ fontSize: 11 }}>
+                ✨ Dans ta wishlist
+              </Text>
+            </View>
+          )}
+
           <Text
             className="text-white font-psemibold text-base mb-0.5"
             numberOfLines={1}

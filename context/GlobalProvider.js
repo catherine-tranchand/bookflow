@@ -1,9 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { getCurrentUser, supabase } from "../lib/supabase";
 
-fetch('https://hwxubzbnpgfxsxtejfxm.supabase.co')
-  .then(res => console.log('✅ Supabase reachable:', res.status))
-  .catch(err => console.log('❌ Fetch failed:', err.message))
 
 const GlobalContext = createContext();
 
